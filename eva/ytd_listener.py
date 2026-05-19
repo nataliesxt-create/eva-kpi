@@ -2,8 +2,8 @@
 ytd_listener.py — Slack YTD command handler.
 
 Listens for messages starting with "YTD" in #eva-kpi.
-Parses the amount, validates it, persists it, and replies exactly:
-  "Updated YTD received"
+Parses the amount, validates it, persists it, and replies with
+an LLM-generated confirmation.
 If invalid, replies:
   "I couldn't read the YTD amount. Please use format: YTD 2435.97"
 """
