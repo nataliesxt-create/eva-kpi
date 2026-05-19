@@ -29,6 +29,9 @@ def _get_client() -> gspread.Client:
         creds = Credentials.from_service_account_file(creds_val, scopes=_SCOPES)
     else:
         info = json.loads(creds_val)
+        # Handle double-encoded JSON (Railway sometimes wraps the value in extra quotes)
+        if isinstance(info, str):
+            info = json.loads(info)
         creds = Credentials.from_service_account_info(info, scopes=_SCOPES)
     return gspread.authorize(creds)
 
