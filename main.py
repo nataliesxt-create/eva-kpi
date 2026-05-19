@@ -59,6 +59,13 @@ def handle_eva_commands(message, say):
     text = message.get("text", "").lower()
     print(f"[Eva] Command received: {text!r}", flush=True)
 
+    def post_error(err_text):
+        try:
+            from eva.clients.slack_client import postToSlack
+            postToSlack(f"⚠️ Eva hit an error:\n```{err_text[-1500:]}```")
+        except Exception:
+            pass
+
     try:
         if "daily" in text:
             say("📊 Running Daily KPI report...")
@@ -72,10 +79,9 @@ def handle_eva_commands(message, say):
             say("📊 Running Monthly KPI report...")
             from eva.kpi_agent import run_monthly_review
             run_monthly_review(force=True)
-    except Exception as e:
+    except Exception:
         import traceback
-        err = traceback.format_exc()
-        say(f"⚠️ Eva hit an error:\n```{err[-1500:]}```")
+        post_error(traceback.format_exc())
 
 
 @app.event({"type": "message", "subtype": "message_changed"})
