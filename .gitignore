@@ -1,0 +1,23 @@
+# Environment
+.env
+*.env
+
+# Credentials
+*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+
+# Test artifacts
+.pytest_cache/
+write_test.tmp
+
+# macOS
+.DS_Store
