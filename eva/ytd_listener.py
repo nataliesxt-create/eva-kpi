@@ -11,6 +11,7 @@ import re
 from typing import Optional
 
 from eva.clients import sheets_client
+from eva.clients import openai_client
 
 # Matches: YTD [optional $] digits [optional comma-separated] [optional .decimals]
 # Examples: YTD 2435.97 | YTD $2,435.97 | YTD 10000
@@ -19,7 +20,6 @@ _YTD_PATTERN = re.compile(
     re.IGNORECASE,
 )
 
-SUCCESS_REPLY = "Updated YTD received"
 ERROR_REPLY = "I couldn't read the YTD amount. Please use format: YTD 2435.97"
 
 
@@ -65,4 +65,34 @@ def handleYtdMessage(text: str) -> str:
         return ERROR_REPLY
     # Persist — only reply after successful save
     sheets_client.updateCurrentYtd(amount)
-    return SUCCESS_REPLY
+    return _generateYtdReply(amount)
+
+
+def _generateYtdReply(amount: float) -> str:
+    """Generate an encouraging YTD confirmation using OpenAI."""
+    try:
+        response = openai_client._get_client().chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are Eva, a sharp KPI advisor for Natalie Tan, a Singapore financial advisor. "
+                        "Reply in Slack formatting. Use emojis. Keep it to 2 sentences max. "
+                        "Be warm but direct. No fluff."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Natalie just updated her YTD to ${amount:,.2f}. "
+                        "Confirm it's saved and give her one sharp, encouraging line about the number."
+                    ),
+                },
+            ],
+            temperature=0.8,
+            max_tokens=80,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception:
+        return f"✅ YTD updated to ${amount:,.2f} — saved to your KPI sheet."
