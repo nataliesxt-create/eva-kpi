@@ -49,50 +49,36 @@ def handle_ytd_message(message, say, logger):
         logger.error(f"[Eva] Failed to reply to YTD message: {exc}")
 
 
-_EVA_DAILY   = re.compile(r"^\s*Eva,?\s+update\s+daily\b",   re.IGNORECASE)
-_EVA_WEEKLY  = re.compile(r"^\s*Eva,?\s+update\s+weekly\b",  re.IGNORECASE)
-_EVA_MONTHLY = re.compile(r"^\s*Eva,?\s+update\s+monthly\b", re.IGNORECASE)
-
-
-@app.message(_EVA_DAILY)
-def handle_manual_daily(message, say):
-    print(f"[Eva] handle_manual_daily fired — channel={message.get('channel')} text={message.get('text')!r}", flush=True)
+@app.message(re.compile(r"eva.*update\s+(daily|weekly|monthly)", re.IGNORECASE))
+def handle_eva_commands(message, say):
     if message.get("channel") != config.SLACK_EVA_KPI_CHANNEL_ID:
-        print(f"[Eva] Ignored — wrong channel: {message.get('channel')}", flush=True)
         return
     if message.get("bot_id") or message.get("subtype"):
         return
-    say("📊 Running Daily KPI report...")
+
+    text = message.get("text", "").lower()
+    print(f"[Eva] Command received: {text!r}", flush=True)
+
     try:
-        from eva.kpi_agent import run_daily_kpi
-        run_daily_kpi()
-        print("[Eva] Daily KPI posted successfully.", flush=True)
+        if "daily" in text:
+            say("📊 Running Daily KPI report...")
+            from eva.kpi_agent import run_daily_kpi
+            run_daily_kpi()
+            print("[Eva] Daily KPI posted.", flush=True)
+        elif "weekly" in text:
+            say("📊 Running Weekly KPI report...")
+            from eva.kpi_agent import run_weekly_review
+            run_weekly_review()
+            print("[Eva] Weekly review posted.", flush=True)
+        elif "monthly" in text:
+            say("📊 Running Monthly KPI report...")
+            from eva.kpi_agent import run_monthly_review
+            run_monthly_review(force=True)
+            print("[Eva] Monthly review posted.", flush=True)
     except Exception as e:
-        print(f"[Eva] ERROR in run_daily_kpi: {e}", flush=True)
+        print(f"[Eva] ERROR: {e}", flush=True)
         import traceback
         traceback.print_exc()
-
-
-@app.message(_EVA_WEEKLY)
-def handle_manual_weekly(message, say):
-    if message.get("channel") != config.SLACK_EVA_KPI_CHANNEL_ID:
-        return
-    if message.get("bot_id") or message.get("subtype"):
-        return
-    say("📊 Running Weekly KPI report...")
-    from eva.kpi_agent import run_weekly_review
-    run_weekly_review()
-
-
-@app.message(_EVA_MONTHLY)
-def handle_manual_monthly(message, say):
-    if message.get("channel") != config.SLACK_EVA_KPI_CHANNEL_ID:
-        return
-    if message.get("bot_id") or message.get("subtype"):
-        return
-    say("📊 Running Monthly KPI report...")
-    from eva.kpi_agent import run_monthly_review
-    run_monthly_review(force=True)
 
 
 @app.event({"type": "message", "subtype": "message_changed"})
