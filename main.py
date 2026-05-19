@@ -64,21 +64,18 @@ def handle_eva_commands(message, say):
             say("📊 Running Daily KPI report...")
             from eva.kpi_agent import run_daily_kpi
             run_daily_kpi()
-            print("[Eva] Daily KPI posted.", flush=True)
         elif "weekly" in text:
             say("📊 Running Weekly KPI report...")
             from eva.kpi_agent import run_weekly_review
             run_weekly_review()
-            print("[Eva] Weekly review posted.", flush=True)
         elif "monthly" in text:
             say("📊 Running Monthly KPI report...")
             from eva.kpi_agent import run_monthly_review
             run_monthly_review(force=True)
-            print("[Eva] Monthly review posted.", flush=True)
     except Exception as e:
-        print(f"[Eva] ERROR: {e}", flush=True)
         import traceback
-        traceback.print_exc()
+        err = traceback.format_exc()
+        say(f"⚠️ Eva hit an error:\n```{err[-1500:]}```")
 
 
 @app.event({"type": "message", "subtype": "message_changed"})
