@@ -23,6 +23,23 @@ def _pct(pct: float) -> str:
     return f"{pct:.1f}%"
 
 
+def _pipeline_funnel(metrics: dict) -> str:
+    bd = metrics.get("pipeline_breakdown", {})
+    def _line(label: str, key: str, emoji: str) -> str:
+        count, amount = bd.get(key, (0, 0.0))
+        return f"• {emoji} {label}: {count} case{'s' if count != 1 else ''} / {_fmt(amount)}"
+
+    return (
+        f"{_DIVIDER}\n"
+        f"🔄 *3. Pipeline funnel*\n\n"
+        + _line("Contacted",                 "contacted",               "📞") + "\n"
+        + _line("Appt Scheduled",            "appointment_scheduled",   "📅") + "\n"
+        + _line("Proposal Appt Scheduled",   "proposal_appt_scheduled", "🗓️") + "\n"
+        + _line("Opening",                   "opening",                 "🔓") + "\n"
+        + _line("Proposal Presented",        "proposal_presented",      "📋")
+    )
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # KPI input formatters (fed to OpenAI — plain text, no Slack markdown)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -103,7 +120,7 @@ def buildDailyReport(metrics: dict[str, Any]) -> str:
         (
             f"{_DIVIDER}\n"
             f"📍 *1. Today's target pulse*\n\n"
-            f"• 📈 YTD: {_fmt(metrics['ytd'])}\n"
+            f"• 📈 YTD: {_fmt(metrics['ytd'])} _(+{_fmt(metrics['submitted_commission'])} submitted = {_fmt(metrics['effective_ytd'])} effective)_\n"
             f"• 🎯 Shortfall: {_fmt(metrics['shortfall'])}\n"
             f"• 📅 Weekly Needed: {_fmt(metrics['weekly_needed'])}\n"
             f"• 🗓️ Monthly Needed: {_fmt(metrics['monthly_needed'])}"
@@ -116,6 +133,8 @@ def buildDailyReport(metrics: dict[str, Any]) -> str:
             f"• 🔄 Active Pipeline: {_fmt(metrics['pipeline_commission'])}\n"
             f"• ⏸️ Stalled: {metrics['stalled_count']} cases / {_fmt(metrics['stalled_amount'])}"
         ),
+
+        _pipeline_funnel(metrics),
 
         f"{_DIVIDER}\n{ai_narrative}",
     ]
@@ -152,6 +171,8 @@ def buildWeeklyReport(metrics: dict[str, Any]) -> str:
             f"• 📋 Proposal Presented: {metrics['proposal_count']} / {_fmt(metrics['proposal_amount'])}\n"
             f"• ✅ Submitted / Underwriting / Accepted: {metrics['submitted_count']} / {_fmt(metrics['submitted_commission'])}"
         ),
+
+        _pipeline_funnel(metrics),
 
         f"{_DIVIDER}\n{ai_narrative}",
     ]
@@ -197,6 +218,8 @@ def buildMonthlyReport(metrics: dict[str, Any]) -> str:
             f"• 📋 Proposal Presented: {metrics['proposal_count']} / {_fmt(metrics['proposal_amount'])}\n"
             f"• 🔄 Active Pipeline: {metrics['pipeline_count']} / {_fmt(metrics['pipeline_commission'])}"
         ),
+
+        _pipeline_funnel(metrics),
 
         f"{_DIVIDER}\n{ai_narrative}",
     ]

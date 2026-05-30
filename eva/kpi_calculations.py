@@ -130,25 +130,42 @@ def calculateKpiMetrics(
     stalled_amount: float = _sum_amounts(stalled_deals)
     proposal_deals = [
         d_ for d_ in classified_deals.get("pipeline", [])
-        if _normalise_stage(d_.get("dealstage", "")) == "proposal presented"
+        if _normalise_stage(d_.get("dealstage", "")) == "contractsent"
     ]
     proposal_count: int = len(proposal_deals)
     proposal_amount: float = _sum_amounts(proposal_deals)
     submitted_deals = classified_deals.get("submitted", [])
     submitted_count: int = len(submitted_deals)
 
+    # Pipeline stage breakdown
+    def _stage_summary(stage_id: str) -> tuple[int, float]:
+        deals = [d_ for d_ in classified_deals.get("pipeline", [])
+                 if _normalise_stage(d_.get("dealstage", "")) == stage_id]
+        return len(deals), _sum_amounts(deals)
+
+    pipeline_breakdown = {
+        "contacted":                  _stage_summary("appointmentscheduled"),
+        "appointment_scheduled":      _stage_summary("3407359681"),
+        "proposal_appt_scheduled":    _stage_summary("decisionmakerboughtin"),
+        "opening":                    _stage_summary("presentationscheduled"),
+        "proposal_presented":         _stage_summary("contractsent"),
+    }
+
     remaining_weeks: float = _remaining_weeks_in_year(d)
     remaining_months: float = _remaining_months_in_year(d)
 
-    shortfall: float = max(annual_target - ytd, 0.0)
+    # Effective YTD includes submitted commission — deals in motion count toward the gap
+    effective_ytd: float = ytd + submitted_commission
+
+    shortfall: float = max(annual_target - effective_ytd, 0.0)
     weekly_needed: float = shortfall / remaining_weeks
     monthly_needed: float = shortfall / remaining_months
     weekly_gap: float = weekly_needed - submitted_commission
     monthly_gap: float = monthly_needed - submitted_commission
 
-    achievement_pct: float = (ytd / annual_target * 100) if annual_target > 0 else 0.0
+    achievement_pct: float = (effective_ytd / annual_target * 100) if annual_target > 0 else 0.0
     target_incl_pipeline_pct: float = (
-        (ytd + submitted_commission + pipeline_commission) / annual_target * 100
+        (effective_ytd + pipeline_commission) / annual_target * 100
         if annual_target > 0 else 0.0
     )
 
@@ -158,6 +175,7 @@ def calculateKpiMetrics(
         "monthly_target": monthly_target,
         # YTD
         "ytd": ytd,
+        "effective_ytd": effective_ytd,
         "ytd_source": "manual" if manual_ytd is not None else "closed_won",
         # Shortfall & pace
         "shortfall": shortfall,
@@ -179,6 +197,8 @@ def calculateKpiMetrics(
         "stalled_amount": stalled_amount,
         "proposal_count": proposal_count,
         "proposal_amount": proposal_amount,
+        # Pipeline breakdown by stage
+        "pipeline_breakdown": pipeline_breakdown,
         # Date context
         "date": d,
     }
